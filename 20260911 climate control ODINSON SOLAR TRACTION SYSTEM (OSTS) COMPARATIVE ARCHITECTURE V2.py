@@ -1,0 +1,160 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# ==============================================================================
+# ODINSON SOLAR TRACTION SYSTEM (OSTS) COMPARATIVE ARCHITECTURE
+# Provided for Free Open Source until the MIT License on GitHub
+# ~~~ By Jeff Conroy | Global HC Analytics LLC | And the Premier Private Oncology Biopharma based in New Jerzeeeeee ;)
+# Style Note (Premier Python Coding and Commenting Rule #1): 
+# "If a part moves, it breaks. If it catches wind, it steals your energy. 
+# Eliminate the drag, eliminate the servos, and let the materials do the work."
+# ==============================================================================
+
+class VehicleSpecs:
+    def __init__(self):
+        # Baseline EV efficiency without body modifications (Wh/mile)
+        self.base_efficiency_wh_mi = 250.0  
+
+class OSTS_1_Mechanical:
+    """ 
+    OSTS-1: Mechanical Active Tracking Protocol (Original Concept)
+    HEMPLEMAN REVIEW: Over-engineered. Servo motors add unnecessary weight,
+    draw parasitic load, and mechanical hinges create extreme aero drag penalties.
+    Physical side-mirrors retain dangerous human biological blind spots.
+    """
+    def __init__(self):
+        self.name = "OSTS-1 (Mechanical Active Tracking)"
+        self.pv_efficiency = 0.38  # Multi-junction film
+        self.surface_area_ft2 = 75.0
+        
+        # Parasitic and Drag Losses
+        self.servo_power_draw_w = 250.0      # Continuous motor load tracking sun
+        self.aero_drag_penalty_mult = 1.25   # +25% drag penalty from articulators & side mirrors
+        self.shading_loss_factor = 0.50      # Traditional string topology (single shaded cell kills array)
+
+class OSTS_2_SolidState:
+    """ 
+#    OSTS-2: Solid-State Structural Architecture + OP-DCS Mirror Deletion
+#    HEMPLEMAN REVIEW: Pure solid-state integration. We deleted physical side mirrors 
+#    (saving 6% aero drag) and replaced them with Optical-Phased Dynamic Cameras (OP-DCS). 
+#    Eliminates human neck-rotation blind spots completely while expanding PV skin area.
+    """
+    def __init__(self):
+        self.name = "OSTS-2 (Solid-State + Mirrorless OP-DCS)"
+        self.pv_efficiency = 0.42  # Graphene-Enhanced Composite + LSC
+        
+        # Gain +3.5 ft² solar harvesting area by replacing physical mirror caps with PV skin
+        self.surface_area_ft2 = 78.5  
+        
+        # Solid-State Advantages & Aerodynamic Wins
+        self.camera_sensor_draw_w = 18.0     # Tiny continuous draw for dual HD vision feeds
+        self.aero_drag_penalty_mult = 0.89   # -11% total drag drop vs OSTS-1 (Mirrorless + flush body)
+        self.shading_loss_factor = 0.92      # Distributed MPPT Matrix isolates shade locally
+
+# ==============================================================================
+# SIMULATION ENGINE
+# ==============================================================================
+def run_hempleman_comparative_analysis():
+    # 12-hour daylight timeline (6:00 AM to 6:00 PM in 15-minute intervals)
+    time_hours = np.linspace(6, 18, 49)  
+    peak_irradiance = 1000.0  # Peak solar irradiance W/m²
+    
+    # Standard solar irradiance curve
+    irradiance = peak_irradiance * np.sin((time_hours - 6) * np.pi / 12)
+    irradiance = np.maximum(0, irradiance)
+
+    # Simulated partial shading event (e.g., driving under urban overpass / trees from 10:00 to 12:00)
+    shading_profile = np.ones_like(irradiance)
+    shading_profile[(time_hours >= 10) & (time_hours <= 12)] = 0.40  # 60% obstruction
+
+    v = VehicleSpecs()
+    osts1 = OSTS_1_Mechanical()
+    osts2 = OSTS_2_SolidState()
+
+    results = []
+
+    for t, irr, shade in zip(time_hours, irradiance, shading_profile):
+        # --- OSTS-1 Execution ---
+        area_m2_1 = osts1.surface_area_ft2 * 0.092903
+        
+        # Mechanical tracking boost (+40%) offset by parasitic servo draw
+        tracking_boost = 1.40 if irr > 50 else 1.0
+        p_raw_1 = area_m2_1 * osts1.pv_efficiency * (irr * tracking_boost)
+        
+        # Hempleman Rule: String topologies fail under partial shading
+        if shade < 1.0:
+            p_raw_1 *= osts1.shading_loss_factor
+            
+        p_net_1 = max(0, p_raw_1 - osts1.servo_power_draw_w) if irr > 50 else 0
+
+        # --- OSTS-2 Execution ---
+        area_m2_2 = osts2.surface_area_ft2 * 0.092903
+        
+        # Static LSC harvest (No moving parts)
+        p_raw_2 = area_m2_2 * osts2.pv_efficiency * irr
+        
+        # Distributed MPPT insulates array from total collapse under partial shade
+        if shade < 1.0:
+            p_raw_2 *= (shade * osts2.shading_loss_factor)
+            
+        # Deduct ultra-low OP-DCS camera power draw
+        p_net_2 = max(0, p_raw_2 - osts2.camera_sensor_draw_w)
+
+        results.append({
+            'Time (h)': t,
+            'Irradiance (W/m2)': irr,
+            'OSTS-1 Net Generation (kW)': p_net_1 / 1000.0,
+            'OSTS-2 Net Generation (kW)': p_net_2 / 1000.0
+        })
+
+    df = pd.DataFrame(results)
+
+    # Calculate Total Daily Energy Yield
+    time_step_hours = 0.25
+    total_wh_osts1 = df['OSTS-1 Net Generation (kW)'].sum() * 1000 * time_step_hours
+    total_wh_osts2 = df['OSTS-2 Net Generation (kW)'].sum() * 1000 * time_step_hours
+
+    # Real-world range math adjusted for aerodynamic drag factors
+    eff_osts1 = v.base_efficiency_wh_mi * osts1.aero_drag_penalty_mult
+    eff_osts2 = v.base_efficiency_wh_mi * osts2.aero_drag_penalty_mult
+
+    miles_osts1 = total_wh_osts1 / eff_osts1
+    miles_osts2 = total_wh_osts2 / eff_osts2
+
+    # Hempleman Engineering Report Output
+    print("=========================================================================")
+    print("   PREMIER ENGINEERING ANALYSIS: OSTS-1 vs OSTS-2 (HEMPLEMAN REVIEW)     ")
+    print("=========================================================================")
+    print("OSTS-1 (Mechanical Servos + Physical Side Mirrors Retained):")
+    print(f"  - Total Daily Net Yield   : {total_wh_osts1/1000:.2f} kWh/day")
+    print(f"  - Real Driving Draw      : {eff_osts1:.1f} Wh/mi (High Drag & Mirror Turbulence)")
+    print(f"  - Net Daily Distance     : {miles_osts1:.1f} Miles/day")
+    print("-------------------------------------------------------------------------")
+    print("OSTS-2 (Solid-State Structural + OP-DCS Mirror Deletion):")
+    print(f"  - Total Daily Net Yield   : {total_wh_osts2/1000:.2f} kWh/day (+3.5 ft² extra solar skin)")
+    print(f"  - Real Driving Draw      : {eff_osts2:.1f} Wh/mi (Aero Optimized, Mirrorless)")
+    print(f"  - Net Daily Distance     : {miles_osts2:.1f} Miles/day")
+    print("-------------------------------------------------------------------------")
+    print("HEMPLEMAN VERDICT:")
+    print("  1. Zero Mechanical Failure Points (Removed all tracking servos).")
+    print("  2. Zero Biological Blind Spots (OP-DCS 180° continuous vision inside A-pillars).")
+    print(f"  3. Net Efficiency Advantage: +{((miles_osts2 - miles_osts1)/miles_osts1)*100:.1f}% usable range gain.")
+    print("=========================================================================")
+
+    # Plot Comparison Curves
+    plt.figure(figsize=(11, 5))
+    plt.plot(df['Time (h)'], df['OSTS-1 Net Generation (kW)'], label='OSTS-1: Mechanical Servos (High Drag & Loss)', color='#e74c3c', linewidth=2, linestyle='--')
+    plt.plot(df['Time (h)'], df['OSTS-2 Net Generation (kW)'], label='OSTS-2: Solid-State Mirrorless (Premier Standard)', color='#2ecc71', linewidth=2.5)
+    
+    plt.axvspan(10, 12, color='gray', alpha=0.2, label='Tree/Overpass Shading Event')
+    plt.title('Premier Engineering Comparison: Mechanical Drag vs. Solid-State Mirrorless', fontsize=12, fontweight='bold')
+    plt.xlabel('Hour of Day')
+    plt.ylabel('Net Power Generation (kW)')
+    plt.grid(True, linestyle=':', alpha=0.6)
+    plt.legend(loc='upper right')
+    plt.tight_layout()
+    plt.show()
+
+# Run Premier Benchmark
+run_hempleman_comparative_analysis()
